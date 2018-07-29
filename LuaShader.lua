@@ -65,7 +65,7 @@ function LuaShader:Compile()
 	return true
 end
 
-function LuaShader:GetShaderHandle()
+function LuaShader:GetHandle()
 	if self.shaderObj ~= nil then
 		return self.shaderObj
 	else
@@ -81,7 +81,7 @@ function LuaShader:Delete()
 	end
 end
 
-function LuaShader:Activate()	
+function LuaShader:Activate()
 	if self.shaderObj ~= nil then
 		self.active = true
 		return gl.UseShader(self.shaderObj)
@@ -156,7 +156,7 @@ function LuaShader:SetUniformAlways(name, ...)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformAlwaysImpl(uniform, ...)
 end
 
@@ -171,7 +171,7 @@ function LuaShader:SetUniform(name, ...)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformImpl(uniform, ...)
 end
 
@@ -186,7 +186,7 @@ function LuaShader:SetUniformIntAlways(name, ...)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformIntAlwaysImpl(uniform, ...)
 end
 
@@ -201,7 +201,7 @@ function LuaShader:SetUniformInt(name, ...)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformIntImpl(uniform, ...)
 end
 
@@ -216,7 +216,7 @@ function LuaShader:SetUniformFloatArrayAlways(name, tbl)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformFloatArrayAlwaysImpl(uniform, tbl)
 end
 
@@ -231,7 +231,7 @@ function LuaShader:SetUniformFloatArray(name, tbl)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformFloatArrayImpl(uniform, tbl)
 end
 
@@ -246,7 +246,7 @@ function LuaShader:SetUniformIntArrayAlways(name, tbl)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformIntArrayAlwaysImpl(uniform, tbl)
 end
 
@@ -261,7 +261,7 @@ function LuaShader:SetUniformIntArray(name, tbl)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformIntArrayImpl(uniform, tbl)
 end
 
@@ -276,7 +276,7 @@ function LuaShader:SetUniformMatrixAlways(name, ...)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformMatrixAlwaysImpl(uniform, {...})
 end
 
@@ -291,7 +291,7 @@ function LuaShader:SetUniformMatrix(name, ...)
 	local uniform = getUniform(self, name)
 	if not uniform then
 		return false
-	end	
+	end
 	return setUniformMatrixImpl(uniform, {...})
 end
 -----------------============ End of LuaShader uniform manipulation functions ============-----------------
