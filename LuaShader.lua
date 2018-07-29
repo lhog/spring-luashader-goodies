@@ -11,6 +11,7 @@ local function new(class, shaderParams, shaderName, showWarn)
 		shaderParams = shaderParams or {},
 		showWarn = showWarn or true,
 		shaderObj = nil,
+		active = false,
 		uniforms = {},
 	}, class)
 end
@@ -68,7 +69,7 @@ function LuaShader:GetShaderHandle()
 	if self.shaderObj ~= nil then
 		return self.shaderObj
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s]()", debug.getinfo(1).name)))
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
 	end
 end
 
@@ -76,28 +77,32 @@ function LuaShader:Delete()
 	if self.shaderObj ~= nil then
 		gl.DeleteShader(self.shaderObj)
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s]()", debug.getinfo(1).name)))
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
 	end
 end
 
 function LuaShader:Activate()	
 	if self.shaderObj ~= nil then
+		self.active = true
 		return gl.UseShader(self.shaderObj)
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s]()", debug.getinfo(1).name)))
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
 		return false
 	end
 end
 
 function LuaShader:ActivateWith(func, ...)
 	if self.shaderObj ~= nil then
+		self.active = true
 		gl.ActiveShader(self.shaderObj, func, ...)
+		self.active = false
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s]()", debug.getinfo(1).name)))
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
 	end
 end
 
 function LuaShader:Deactivate()
+	self.active = false
 	gl.UseShader(0)
 end
 -----------------============ End of general LuaShader methods ============-----------------
@@ -105,6 +110,10 @@ end
 
 -----------------============ Friend LuaShader functions ============-----------------
 local function getUniform(self, name)
+	if not self.active then
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Trying to set uniform [%s] on inactive shader object. Did you use :Activate() or :ActivateWith()?", name)))
+		return nil
+	end
 	local uniform = self.uniforms[name]
 	if not uniform then
 		if self.showWarn then
