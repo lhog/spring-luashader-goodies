@@ -13,7 +13,7 @@ local function new(class, texIn, texOut, unusedTexId, downScale, linearSampling,
 		sigma = sigma or 1.0,
 		valMult = valMult or 1.0,
 		repeats = repeats or 1,
-		blurTexIntFormat = blurTexIntFormat or 0x1908,
+		blurTexIntFormat = blurTexIntFormat or GL_RGBA,
 
 		blurTex = {},
 		blurBFO = {},
@@ -147,6 +147,7 @@ function GaussBlur:Initialize()
 				"#version 150 compatibility\n",
 			},
 			fragment = fragCode,
+			--this below sadly doesn't work
 			--[[
 			uniformArray = {
 				weights = self.weights,
@@ -155,6 +156,7 @@ function GaussBlur:Initialize()
 			]]--
 			uniform = {
 				dir = {i % 2, (i + 1) % 2},
+				outSize = {self.blurTexSizeX, self.blurTexSizeY},
 			},
 			uniformInt = {
 				tex = self.unusedTexId,
@@ -178,7 +180,7 @@ function GaussBlur:Execute()
 		self.blurShader[1]:ActivateWith( function ()
 			self.blurShader[1]:SetUniformFloatArray("weights", self.weights)
 			self.blurShader[1]:SetUniformFloatArray("offsets", self.offsets)
-			self.blurShader[1]:SetUniform("outSize", self.blurTexSizeX, self.blurTexSizeY)
+			--self.blurShader[1]:SetUniform("outSize", self.blurTexSizeX, self.blurTexSizeY)
 
 			gl.ActiveFBO(self.blurBFO[1], function()
 				gl.DepthTest(false)
@@ -192,7 +194,8 @@ function GaussBlur:Execute()
 		self.blurShader[2]:ActivateWith( function ()
 			self.blurShader[2]:SetUniformFloatArray("weights", self.weights)
 			self.blurShader[2]:SetUniformFloatArray("offsets", self.offsets)
-			self.blurShader[2]:SetUniform("outSize", self.blurTexSizeX, self.blurTexSizeY)
+			--self.blurShader[2]:SetUniform("outSize", self.blurTexSizeX, self.blurTexSizeY)
+
 			gl.ActiveFBO(self.blurBFO[2], function()
 				gl.DepthTest(false)
 				gl.Blending(false)
