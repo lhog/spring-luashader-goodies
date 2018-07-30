@@ -1,8 +1,6 @@
 local LuaShader = VFS.Include("LuaUI/Widgets/libs/LuaShader.lua")
 
 local GL_RGBA = 0x1908
-local GL_RGBA16F = 0x881A
-local GL_RGBA32F = 0x8814
 
 local function new(class, texIn, texOut, unusedTexId, downScale, linearSampling, sigma, valMult, repeats, blurTexIntFormat)
 	return setmetatable(
@@ -68,8 +66,6 @@ end
 --see http://rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling/
 local function getGaussLinearWeightsOffsets(sigma, kernelHalfSize, valMult)
 	local dWeights, dOffsets = getGaussDiscreteWeightsOffsets(sigma, kernelHalfSize, 1.0)
-
-	dWeights = {0.2270270270, 0.1945945946, 0.1216216216, 0.0540540541, 0.0162162162}
 
 	local weights = {dWeights[1]}
 	local offsets = {dOffsets[1]}
