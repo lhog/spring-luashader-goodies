@@ -42,7 +42,7 @@ function widget:Initialize()
 	})
 	
 	--(texIn, texOut, unusedTexId, downScale, linearSampling, sigma, valMult, repeats, blurTexIntFormat
-	gb = GaussBlur(texIn, texOut, true, 2, true, 1.0, 1.0, 2, GL_RGBA16F)
+	gb = GaussBlur(texIn, texOut, nil, 2, true, 1.0, 1.0, 2, GL_RGBA16F)
 	gb:Initialize()
 end
 
