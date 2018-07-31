@@ -2,18 +2,19 @@ local LuaShader = VFS.Include("LuaUI/Widgets/libs/LuaShader.lua")
 
 local GL_RGBA = 0x1908
 
-local function new(class, texIn, texOut, unusedTexId, downScale, linearSampling, sigma, valMult, repeats, blurTexIntFormat)
+local function new(class, inputs)
 	return setmetatable(
 	{
-		texIn = texIn,
-		texOut = texOut,
-		unusedTexId = unusedTexId or 16, -- 16th is unlikely used
-		downScale = downScale or 1.0,
-		linearSampling = linearSampling or true,
-		sigma = sigma or 1.0,
-		valMult = valMult or 1.0,
-		repeats = repeats or 1,
-		blurTexIntFormat = blurTexIntFormat or GL_RGBA,
+		texIn = inputs.texIn,
+		texOut = inputs.texOut,
+		unusedTexId = inputs.unusedTexId or 16, -- 16th is unlikely used
+		downScale = inputs.downScale or 1.0,
+		linearSampling = inputs.linearSampling or true,
+		sigma = inputs.sigma or 1.0,
+		halfKernelSize = inputs.halfKernelSize or 5,
+		valMult = inputs.valMult or 1.0,
+		repeats = inputs.repeats or 1,
+		blurTexIntFormat = inputs.blurTexIntFormat or GL_RGBA,
 
 		blurTex = {},
 		blurBFO = {},
@@ -131,14 +132,18 @@ function GaussBlur:Initialize()
 			})
 	end
 
-	local KERNEL_HALF_SIZE = 5 --9 points
+	local halfKernelSizeSafe = math.floor(self.halfKernelSize)
+	if halfKernelSizeSafe % 2 == 0 then
+		halfKernelSizeSafe = halfKernelSizeSafe + 1
+	end
+
 	local fragCode
 	if self.linearSampling then
-		fragCode = string.gsub(gaussFragTemplate, "###NUM###", tostring(math.floor((KERNEL_HALF_SIZE - 1)/2 + 1)))
-		self.weights, self.offsets = getGaussLinearWeightsOffsets(self.sigma, KERNEL_HALF_SIZE, self.valMult)
+		fragCode = string.gsub(gaussFragTemplate, "###NUM###", tostring(math.floor((halfKernelSizeSafe - 1)/2 + 1)))
+		self.weights, self.offsets = getGaussLinearWeightsOffsets(self.sigma, halfKernelSizeSafe, self.valMult)
 	else
-		fragCode = string.gsub(gaussFragTemplate, "###NUM###", tostring(KERNEL_HALF_SIZE))
-		self.weights, self.offsets = getGaussDiscreteWeightsOffsets(self.sigma, KERNEL_HALF_SIZE, self.valMult)
+		fragCode = string.gsub(gaussFragTemplate, "###NUM###", tostring(halfKernelSizeSafe))
+		self.weights, self.offsets = getGaussDiscreteWeightsOffsets(self.sigma, halfKernelSizeSafe, self.valMult)
 	end
 
 	for i = 1, 2 do

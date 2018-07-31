@@ -8,7 +8,7 @@ local GL_RGBA32F = 0x8814
 
 function widget:GetInfo()
    return {
-      name      = "Gaussian blur test",
+      name      = "LuaShaders test",
       layer     = 0,
       enabled   = false,
    }
@@ -29,7 +29,7 @@ function widget:Initialize()
 		wrap_t = GL.CLAMP_TO_EDGE,
 		--fbo = true,
 	})
-	
+
 	texOut = gl.CreateTexture(vsx,vsy,
 	{
 		format = GL_RGBA16F,
@@ -40,9 +40,20 @@ function widget:Initialize()
 		wrap_t = GL.CLAMP_TO_EDGE,
 		--fbo = true,
 	})
-	
-	--(texIn, texOut, unusedTexId, downScale, linearSampling, sigma, valMult, repeats, blurTexIntFormat
-	gb = GaussBlur(texIn, texOut, nil, 2, true, 1.0, 1.0, 2, GL_RGBA16F)
+
+	--(texIn, texOut, unusedTexId, downScale, linearSampling, sigma, halfKernelSize, valMult, repeats, blurTexIntFormat)
+	gb = GaussBlur({
+		texIn = texIn,
+		texOut = texOut,
+		unusedTexId = nil,
+		downScale = 1,
+		linearSampling = true,
+		sigma = 3.0,
+		halfKernelSize = 5,
+		valMult = 1.0,
+		repeats = 1,
+		blurTexIntFormat = GL_RGBA16F})
+
 	gb:Initialize()
 end
 
