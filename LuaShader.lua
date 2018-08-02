@@ -65,6 +65,8 @@ function LuaShader:Compile()
 	return true
 end
 
+LuaShader.Initialize = LuaShader.Compile
+
 function LuaShader:GetHandle()
 	if self.shaderObj ~= nil then
 		return self.shaderObj
@@ -80,6 +82,8 @@ function LuaShader:Delete()
 		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
 	end
 end
+
+LuaShader.Finalize = LuaShader.Delete
 
 function LuaShader:Activate()
 	if self.shaderObj ~= nil then
@@ -174,6 +178,9 @@ function LuaShader:SetUniform(name, ...)
 	end
 	return setUniformImpl(uniform, ...)
 end
+
+LuaShader.SetUniformFloat = LuaShader.SetUniform
+LuaShader.SetUniformFloatAlways = LuaShader.SetUniformAlways
 
 
 --INTEGER UNIFORMS

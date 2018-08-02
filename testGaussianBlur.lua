@@ -8,7 +8,7 @@ local GL_RGBA32F = 0x8814
 
 function widget:GetInfo()
    return {
-      name      = "LuaShaders test",
+      name      = "Gaussian Blur test",
       layer     = 0,
       enabled   = false,
    }

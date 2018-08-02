@@ -26,8 +26,8 @@ local function new(class, inputs)
 		blurTexSizeX = 0,
 		blurTexSizeY = 0,
 
-		outTexSizeX = 0,
-		outTexSizeY = 0,
+		texOutSizeX = 0,
+		texOutSizeY = 0,
 
 		weights = nil,
 		offsets = nil,
@@ -92,7 +92,7 @@ local gaussFragTemplate = [[
 		vec2 uv = gl_FragCoord.xy / outSize;
 		vec4 acc = texture( tex, uv ) * weights[0];
 
-		for (int i = 1; i < ###NUM###; i++) {
+		for (int i = 1; i < ###NUM###; ++i) {
 			vec2 uvP = (gl_FragCoord.xy + offsets[i] * dir) / outSize;
 			vec2 uvN = (gl_FragCoord.xy - offsets[i] * dir) / outSize;
 			acc += texture( tex, uvP ) * weights[i];
@@ -111,7 +111,7 @@ function GaussBlur:Initialize()
 	self.blurTexSizeX, self.blurTexSizeY = math.floor(texInInfo.xsize / self.downScale), math.floor(texInInfo.ysize / self.downScale)
 
 	local texOutInfo = gl.TextureInfo(self.texOut)
-	self.outTexSizeX, self.outTexSizeY = texOutInfo.xsize, texOutInfo.ysize
+	self.texOutSizeX, self.texOutSizeY = texOutInfo.xsize, texOutInfo.ysize
 
 	for i = 1, 2 do
 		self.blurTex[i] = gl.CreateTexture(self.blurTexSizeX, self.blurTexSizeY, {
@@ -122,14 +122,14 @@ function GaussBlur:Initialize()
 			wrap_s = GL.CLAMP_TO_EDGE,
 			wrap_t = GL.CLAMP_TO_EDGE,
 			--fbo = true,
-			})
+		})
 	end
 
 	for i = 1, 2 do
 		self.blurBFO[i] = gl.CreateFBO({
 			color0 = self.blurTex[i],
 			drawbuffers = {GL_COLOR_ATTACHMENT0_EXT},
-			})
+		})
 	end
 
 	local halfKernelSizeSafe = math.floor(self.halfKernelSize)
@@ -161,7 +161,7 @@ function GaussBlur:Initialize()
 			},
 
 		}, string.format("blurShader[%i]", i))
-		self.blurShader[i]:Compile()
+		self.blurShader[i]:Initialize()
 		--workaround to non-working array uniforms in gl.CreateShader
 		self.blurShader[i]:ActivateWith(function ()
 			self.blurShader[i]:SetUniformFloatArray("weights", self.weights)
@@ -171,7 +171,7 @@ function GaussBlur:Initialize()
 	self.outFBO = gl.CreateFBO({
 		color0 = self.texOut,
 		drawbuffers = {GL_COLOR_ATTACHMENT0_EXT},
-		})
+	})
 end
 
 function GaussBlur:Execute()
@@ -203,12 +203,12 @@ function GaussBlur:Execute()
 	gl.Texture(self.unusedTexId, false)
 
 	gl.BlitFBO(	self.blurBFO[2], 0, 0, self.blurTexSizeX, self.blurTexSizeY,
-				self.outFBO, 0, 0, self.outTexSizeX, self.outTexSizeY,
+				self.outFBO, 0, 0, self.texOutSizeX, self.texOutSizeY,
 				GL.COLOR_BUFFER_BIT, GL.LINEAR)
 
 --[[
 	gl.ActiveFBO(self.blurBFO[2], function()
-		gl.CopyToTexture(self.texOut, 0, 0, 0, 0, self.outTexSizeX, self.outTexSizeY)
+		gl.CopyToTexture(self.texOut, 0, 0, 0, 0, self.texOutSizeX, self.texOutSizeY)
 	end)
 ]]--
 end
@@ -225,7 +225,7 @@ function GaussBlur:Finalize()
 	gl.DeleteFBO(self.outFBO)
 
 	for i = 1, 2 do
-		self.blurShader[i]:Delete()
+		self.blurShader[i]:Finalize()
 	end
 end
 
