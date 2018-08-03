@@ -29,6 +29,8 @@ local combFragTemplate = [[
 
 	uniform vec2 texOutSize;
 
+####CombUniforms####
+
 ####DoToneMapping_Definition####
 
 	void main(void)

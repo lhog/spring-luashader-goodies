@@ -155,15 +155,19 @@ local myDoToneMapping = [[
 
 	vec3 xyYToneMapping(vec3 color) {
 		vec3 xyY = rgb_to_xyY(color);
-		//float mapY = xyY.z / (xyY.z + 0.00001);
-		float mapY = pow(xyY.z, 0.8);
+		//float mapY = xyY.z / (xyY.z + 1.0);
+		float mapY = pow(xyY.z, 0.6);
 		//float mapY = log(xyY.z + 1.0);
+
+		//xyY.xy *= 0.95;
+
 		vec3 color2 = xyY_to_rgb(vec3( xyY.x, xyY.y, mapY ));
 
 		const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
 		float lum = dot(color, LUM);
-		
-		float mixFactor = step(0.8, lum);
+
+		float mixFactor = step(mixFactorLum, lum);
+		//float mixFactor = smoothstep(0.4, 0.5, lum);
 
 		return mix(color, color2, mixFactor);
 }
@@ -177,7 +181,9 @@ local myDoToneMapping = [[
 	}
 ]]
 
-local myCombUniforms = ""
+local myCombUniforms = [[
+	uniform float mixFactorLum;
+]]
 
 local coffShader, combShader
 
@@ -213,25 +219,27 @@ function widget:Initialize()
 			[1] = {
 				-- texIn = texIn, --will be set by BloomShader()
 				-- texOut = texOut, --will be set by BloomShader()
-				unusedTexId = nil,
+				-- unusedTexId MUST be set in case of multiple gausses
+				unusedTexId = 16,
 				downScale = 4,
 				linearSampling = true,
 				sigma = 1.0,
 				halfKernelSize = 5,
-				valMult = 8.0,
+				valMult = 1.0,
 				repeats = 2,
 				blurTexIntFormat = GL_RGBA16F,
 			},
 			[2] = {
 				-- texIn = texIn, --will be set by BloomShader()
 				-- texOut = texOut, --will be set by BloomShader()
-				unusedTexId = nil,
-				downScale = 8,
+				-- unusedTexId MUST be set in case of multiple gausses
+				unusedTexId = 17,
+				downScale = 32,
 				linearSampling = true,
-				sigma = 8.0,
+				sigma = 16.0,
 				halfKernelSize = 5,
-				valMult = 0.7,
-				repeats = 2,
+				valMult = 0.8,
+				repeats = 0,
 				blurTexIntFormat = GL_RGBA16F,
 			},
 
@@ -253,6 +261,10 @@ function widget:Initialize()
 	coffShader:ActivateWith( function()
 		coffShader:SetUniformFloatAlways("cutOffLum", 0.7)
 	end)
+
+	combShader:ActivateWith( function()
+		combShader:SetUniformFloatAlways("mixFactorLum", 0.8)
+	end)
 end
 
 function widget:Shutdown()
@@ -265,6 +277,7 @@ end
 function widget:DrawScreenEffects()
 	gl.CopyToTexture(texIn, 0, 0, 0, 0, vsx, vsy)
 	gl.Texture(0, texIn)
+
 	bs:Execute()
 
 	gl.Texture(0, texOut)
