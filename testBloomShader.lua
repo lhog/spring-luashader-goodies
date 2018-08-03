@@ -225,7 +225,7 @@ function widget:Initialize()
 				linearSampling = true,
 				sigma = 1.0,
 				halfKernelSize = 5,
-				valMult = 1.0,
+				valMult = 0.4,
 				repeats = 2,
 				blurTexIntFormat = GL_RGBA16F,
 			},
@@ -234,12 +234,12 @@ function widget:Initialize()
 				-- texOut = texOut, --will be set by BloomShader()
 				-- unusedTexId MUST be set in case of multiple gausses
 				unusedTexId = 17,
-				downScale = 32,
+				downScale = 16,
 				linearSampling = true,
-				sigma = 16.0,
+				sigma = 8.0,
 				halfKernelSize = 5,
 				valMult = 0.8,
-				repeats = 0,
+				repeats = 2,
 				blurTexIntFormat = GL_RGBA16F,
 			},
 
