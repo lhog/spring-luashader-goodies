@@ -36,10 +36,10 @@ local function new(class, inputs)
 	}, class)
 end
 
-local GaussBlur = setmetatable({}, {
+local GaussianBlur = setmetatable({}, {
 	__call = function(self, ...) return new(self, ...) end,
 	})
-GaussBlur.__index = GaussBlur
+GaussianBlur.__index = GaussianBlur
 
 local function G(x, sigma)
 	return ( 1 / ( math.sqrt(2 * math.pi) * sigma ) ) * math.exp( -(x * x) / (2 * sigma * sigma) )
@@ -112,7 +112,7 @@ local gaussFragTemplate = [[
 
 local GL_COLOR_ATTACHMENT0_EXT = 0x8CE0
 
-function GaussBlur:Initialize()
+function GaussianBlur:Initialize()
 	local texInInfo = gl.TextureInfo(self.texIn)
 
 	self.inTexSizeX, self.inTexSizeY = texInInfo.xsize , texInInfo.ysize
@@ -182,7 +182,7 @@ function GaussBlur:Initialize()
 	})
 end
 
-function GaussBlur:Execute()
+function GaussianBlur:Execute()
 	gl.Texture(self.unusedTexId, self.texIn)
 
 	for i = 1, self.repeats do
@@ -214,7 +214,7 @@ function GaussBlur:Execute()
 				GL.COLOR_BUFFER_BIT, GL.LINEAR )
 end
 
-function GaussBlur:Finalize()
+function GaussianBlur:Finalize()
 	for i = 1, 2 do
 		gl.DeleteTexture(self.blurTex[i])
 	end
@@ -231,4 +231,4 @@ function GaussBlur:Finalize()
 end
 
 
-return GaussBlur
+return GaussianBlur

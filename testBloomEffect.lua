@@ -1,5 +1,5 @@
 local LuaShader = VFS.Include("LuaUI/Widgets/libs/LuaShader.lua")
-local BloomShader = VFS.Include("LuaUI/Widgets/libs/BloomShader.lua")
+local BloomEffect = VFS.Include("LuaUI/Widgets/libs/BloomEffect.lua")
 
 local GL_RGBA = 0x1908
 local GL_RGBA16F = 0x881A
@@ -8,7 +8,7 @@ local GL_RGBA32F = 0x8814
 
 function widget:GetInfo()
    return {
-      name      = "BloomShader test",
+      name      = "BloomEffect test",
       layer     = 1000,
       enabled   = false,
    }
@@ -212,13 +212,13 @@ function widget:Initialize()
 	})
 
 
-	bs = BloomShader({
+	be = BloomEffect({
 		texIn = texIn,
 		texOut = texOut,
 		gParams = {
 			[1] = {
-				-- texIn = texIn, --will be set by BloomShader()
-				-- texOut = texOut, --will be set by BloomShader()
+				-- texIn = texIn, --will be set by BloomEffect()
+				-- texOut = texOut, --will be set by BloomEffect()
 				-- unusedTexId MUST be set in case of multiple gausses
 				unusedTexId = 16,
 				downScale = 4,
@@ -230,8 +230,8 @@ function widget:Initialize()
 				blurTexIntFormat = GL_RGBA16F,
 			},
 			[2] = {
-				-- texIn = texIn, --will be set by BloomShader()
-				-- texOut = texOut, --will be set by BloomShader()
+				-- texIn = texIn, --will be set by BloomEffect()
+				-- texOut = texOut, --will be set by BloomEffect()
 				-- unusedTexId MUST be set in case of multiple gausses
 				unusedTexId = 17,
 				downScale = 16,
@@ -254,9 +254,9 @@ function widget:Initialize()
 
 		bloomOnly = false,
 	})
-	bs:Initialize()
+	be:Initialize()
 
-	coffShader, combShader = bs:GetShaders()
+	coffShader, combShader = be:GetShaders()
 
 	coffShader:ActivateWith( function()
 		coffShader:SetUniformFloatAlways("cutOffLum", 0.7)
@@ -271,14 +271,14 @@ function widget:Shutdown()
 	gl.DeleteTexture(texIn)
 	gl.DeleteTexture(texOut)
 
-	bs:Finalize()
+	be:Finalize()
 end
 
 function widget:DrawScreenEffects()
 	gl.CopyToTexture(texIn, 0, 0, 0, 0, vsx, vsy)
 	gl.Texture(0, texIn)
 
-	bs:Execute()
+	be:Execute()
 
 	gl.Texture(0, texOut)
 	--gl.Texture(1, texIn)

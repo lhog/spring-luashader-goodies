@@ -1,5 +1,5 @@
 local LuaShader = VFS.Include("LuaUI/Widgets/libs/LuaShader.lua")
-local GaussBlur = VFS.Include("LuaUI/Widgets/libs/GaussBlur.lua")
+local GaussianBlur = VFS.Include("LuaUI/Widgets/libs/GaussianBlur.lua")
 
 local GL_RGBA = 0x1908
 local GL_RGBA16F = 0x881A
@@ -42,7 +42,7 @@ function widget:Initialize()
 	})
 
 	--(texIn, texOut, unusedTexId, downScale, linearSampling, sigma, halfKernelSize, valMult, repeats, blurTexIntFormat)
-	gb = GaussBlur({
+	gb = GaussianBlur({
 		texIn = texIn,
 		texOut = texOut,
 		unusedTexId = nil,

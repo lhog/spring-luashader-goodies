@@ -1,4 +1,4 @@
-local GaussBlur = VFS.Include("LuaUI/Widgets/libs/GaussBlur.lua")
+local GaussianBlur = VFS.Include("LuaUI/Widgets/libs/GaussianBlur.lua")
 local LuaShader = VFS.Include("LuaUI/Widgets/libs/LuaShader.lua")
 
 local GL_RGBA = 0x1908
@@ -88,14 +88,14 @@ local function new(class, inputs)
 	}, class)
 end
 
-local BloomShader = setmetatable({}, {
+local BloomEffect = setmetatable({}, {
 	__call = function(self, ...) return new(self, ...) end,
 	})
-BloomShader.__index = BloomShader
+BloomEffect.__index = BloomEffect
 
 local GL_COLOR_ATTACHMENT0_EXT = 0x8CE0
 
-function BloomShader:Initialize()
+function BloomEffect:Initialize()
 	local texInInfo = gl.TextureInfo(self.texIn)
 
 	self.inTexSizeX, self.inTexSizeY = texInInfo.xsize, texInInfo.ysize
@@ -126,7 +126,7 @@ function BloomShader:Initialize()
 		gParam.texIn = self.cutOffTex
 		gParam.texOut = self.gbTexOut[i]
 
-		self.gbs[i] = GaussBlur(gParam)
+		self.gbs[i] = GaussianBlur(gParam)
 		self.gbs[i]:Initialize()
 
 		gbUnusedTextures[i] = self.gbs[i].unusedTexId
@@ -176,11 +176,11 @@ function BloomShader:Initialize()
 	end)
 end
 
-function BloomShader:GetShaders()
+function BloomEffect:GetShaders()
 	return self.cutOffShader, self.combShader
 end
 
-function BloomShader:Execute()
+function BloomEffect:Execute()
 	gl.Texture(self.unusedTexId, self.texIn)
 
 	self.cutOffShader:ActivateWith( function ()
@@ -220,7 +220,7 @@ function BloomShader:Execute()
 	gl.Texture(self.unusedTexId, false)
 end
 
-function BloomShader:Finalize()
+function BloomEffect:Finalize()
 	for i, gb in ipairs(self.gbs) do
 		gl.DeleteTexture(self.gbTexOut[i])
 		gb:Finalize()
@@ -235,4 +235,4 @@ function BloomShader:Finalize()
 	self.combShader:Finalize()
 end
 
-return BloomShader
+return BloomEffect
