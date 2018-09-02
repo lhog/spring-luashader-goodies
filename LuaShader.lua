@@ -71,7 +71,8 @@ function LuaShader:GetHandle()
 	if self.shaderObj ~= nil then
 		return self.shaderObj
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
+		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
 	end
 end
 
@@ -79,7 +80,8 @@ function LuaShader:Delete()
 	if self.shaderObj ~= nil then
 		gl.DeleteShader(self.shaderObj)
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
+		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
 	end
 end
 
@@ -90,7 +92,8 @@ function LuaShader:Activate()
 		self.active = true
 		return gl.UseShader(self.shaderObj)
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
+		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
 		return false
 	end
 end
@@ -101,7 +104,8 @@ function LuaShader:ActivateWith(func, ...)
 		gl.ActiveShader(self.shaderObj, func, ...)
 		self.active = false
 	else
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", debug.getinfo(1).name)))
+		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
 	end
 end
 
