@@ -101,7 +101,7 @@ function BloomShader:Initialize()
 	self.inTexSizeX, self.inTexSizeY = texInInfo.xsize, texInInfo.ysize
 
 	self.cutOffTex = gl.CreateTexture(texInInfo.xsize, texInInfo.ysize, {
-		format = self.blurTexIntFormat,
+		format = self.cutOffTexFormat,
 		border = false,
 		min_filter = GL.LINEAR,
 		mag_filter = GL.LINEAR,
@@ -114,7 +114,7 @@ function BloomShader:Initialize()
 
 	for i, gParam in ipairs(self.gParams) do
 		self.gbTexOut[i] = gl.CreateTexture(texInInfo.xsize, texInInfo.ysize, {
-			format = self.blurTexIntFormat,
+			format = gParam.blurTexIntFormat,
 			border = false,
 			min_filter = GL.LINEAR,
 			mag_filter = GL.LINEAR,
@@ -187,8 +187,7 @@ function BloomShader:Execute()
 		gl.ActiveFBO(self.cutOffFBO, function()
 			gl.DepthTest(false)
 			gl.Blending(false)
-			gl.Clear(GL.COLOR_BUFFER_BIT)
-			gl.TexRect(0, 0, self.inTexSizeX, self.inTexSizeY)
+			gl.TexRect(-1, -1, 1, 1)
 		end)
 	end)
 
@@ -210,8 +209,7 @@ function BloomShader:Execute()
 		gl.ActiveFBO(self.outFBO, function()
 			gl.DepthTest(false)
 			gl.Blending(false)
-			gl.Clear(GL.COLOR_BUFFER_BIT)
-			gl.TexRect(0, 0, self.inTexSizeX, self.inTexSizeY)
+			gl.TexRect(-1, -1, 1, 1)
 		end)
 	end)
 
