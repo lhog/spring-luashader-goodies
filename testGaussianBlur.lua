@@ -46,12 +46,12 @@ function widget:Initialize()
 		texIn = texIn,
 		texOut = texOut,
 		unusedTexId = nil,
-		downScale = 1,
+		downScale = 2,
 		linearSampling = true,
 		sigma = 3.0,
 		halfKernelSize = 5,
 		valMult = 1.0,
-		repeats = 1,
+		repeats = 2,
 		blurTexIntFormat = GL_RGBA16F})
 
 	gb:Initialize()
@@ -63,9 +63,17 @@ function widget:Shutdown()
 	gb:Finalize()
 end
 
+--Uncomment the followin and comment same in widget:DrawScreenEffects() for drug trip experience
+--[[
+function widget:DrawGenesis()
+	gl.CopyToTexture(texIn, 0, 0, 0, 0, vsx, vsy)
+	gb:Execute(false)
+end
+]]--
+
 function widget:DrawScreenEffects()
 	gl.CopyToTexture(texIn, 0, 0, 0, 0, vsx, vsy)
-	gb:Execute()
+	gb:Execute(true)
 	gl.Texture(0, texOut)
 	gl.TexRect(0, vsy, vsx, 0)
 	gl.Texture(0, false)

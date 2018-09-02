@@ -182,7 +182,7 @@ function GaussianBlur:Initialize()
 	})
 end
 
-function GaussianBlur:Execute()
+function GaussianBlur:Execute(isScreenSpace)
 	gl.Texture(self.unusedTexId, self.texIn)
 
 	for i = 1, self.repeats do
@@ -190,7 +190,11 @@ function GaussianBlur:Execute()
 			gl.ActiveFBO(self.blurBFO[1], function()
 				gl.DepthTest(false)
 				gl.Blending(false)
-				gl.TexRect(-1, -1, 1, 1)
+				if isScreenSpace then
+					gl.TexRect(0, 0, self.inTexSizeX, self.inTexSizeY)
+				else
+					gl.TexRect(-1, -1, 1, 1)
+				end
 			end)
 		end)
 
@@ -200,7 +204,11 @@ function GaussianBlur:Execute()
 			gl.ActiveFBO(self.blurBFO[2], function()
 				gl.DepthTest(false)
 				gl.Blending(false)
-				gl.TexRect(-1, -1, 1, 1)
+				if isScreenSpace then
+					gl.TexRect(0, 0, self.inTexSizeX, self.inTexSizeY)
+				else
+					gl.TexRect(-1, -1, 1, 1)
+				end
 			end)
 		end)
 

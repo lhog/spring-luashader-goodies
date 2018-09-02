@@ -71,8 +71,8 @@ function LuaShader:GetHandle()
 	if self.shaderObj ~= nil then
 		return self.shaderObj
 	else
-		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
+		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()?", funcName)))
 	end
 end
 
@@ -80,8 +80,8 @@ function LuaShader:Delete()
 	if self.shaderObj ~= nil then
 		gl.DeleteShader(self.shaderObj)
 	else
-		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
+		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName)))
 	end
 end
 
@@ -92,8 +92,8 @@ function LuaShader:Activate()
 		self.active = true
 		return gl.UseShader(self.shaderObj)
 	else
-		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
+		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName)))
 		return false
 	end
 end
@@ -104,8 +104,8 @@ function LuaShader:ActivateWith(func, ...)
 		gl.ActiveShader(self.shaderObj, func, ...)
 		self.active = false
 	else
-		local funcName = (debug and debug.getinfo(1).name) or "function name is unavailable (debug object is nil)"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile()?", funcName)))
+		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
+		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName)))
 	end
 end
 

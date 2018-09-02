@@ -278,7 +278,7 @@ function widget:DrawScreenEffects()
 	gl.CopyToTexture(texIn, 0, 0, 0, 0, vsx, vsy)
 	gl.Texture(0, texIn)
 
-	be:Execute()
+	be:Execute(true)
 
 	gl.Texture(0, texOut)
 	--gl.Texture(1, texIn)
