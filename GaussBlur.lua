@@ -95,8 +95,16 @@ local gaussFragTemplate = [[
 		for (int i = 1; i < ###NUM###; ++i) {
 			vec2 uvP = (gl_FragCoord.xy + offsets[i] * dir) / outSize;
 			vec2 uvN = (gl_FragCoord.xy - offsets[i] * dir) / outSize;
-			acc += texture( tex, uvP ) * weights[i];
-			acc += texture( tex, uvN ) * weights[i];
+
+			bvec4 okCoords;
+
+			okCoords = bvec4(uvP.x >= 0.0, uvP.x <= 1.0, uvP.y >= 0.0, uvP.y <= 1.0);
+			if (all(okCoords))
+				acc += texture( tex, uvP ) * weights[i];
+
+			okCoords = bvec4(uvN.x >= 0.0, uvN.x <= 1.0, uvN.y >= 0.0, uvN.y <= 1.0);
+			if (all(okCoords))
+				acc += texture( tex, uvN ) * weights[i];
 		}
 		gl_FragColor = acc;
 	}
@@ -152,7 +160,7 @@ function GaussBlur:Initialize()
 				"#version 150 compatibility\n",
 			},
 			fragment = fragCode,
-			uniform = {
+			uniformFloat = {
 				dir = {i % 2, (i + 1) % 2},
 				outSize = {self.blurTexSizeX, self.blurTexSizeY},
 			},
@@ -178,39 +186,32 @@ function GaussBlur:Execute()
 	gl.Texture(self.unusedTexId, self.texIn)
 
 	for i = 1, self.repeats do
-
 		self.blurShader[1]:ActivateWith( function ()
 			gl.ActiveFBO(self.blurBFO[1], function()
 				gl.DepthTest(false)
 				gl.Blending(false)
-				gl.Clear(GL.COLOR_BUFFER_BIT)
-				gl.TexRect(0, 0, self.inTexSizeX, self.inTexSizeY)
+				gl.TexRect(-1, -1, 1, 1)
 			end)
 		end)
 
 		gl.Texture(self.unusedTexId, self.blurTex[1])
+
 		self.blurShader[2]:ActivateWith( function ()
 			gl.ActiveFBO(self.blurBFO[2], function()
 				gl.DepthTest(false)
 				gl.Blending(false)
-				gl.Clear(GL.COLOR_BUFFER_BIT)
-				gl.TexRect(0, 0, self.inTexSizeX, self.inTexSizeY)
+				gl.TexRect(-1, -1, 1, 1)
 			end)
 		end)
 
 		gl.Texture(self.unusedTexId, self.blurTex[2])
 	end
+
 	gl.Texture(self.unusedTexId, false)
 
 	gl.BlitFBO(	self.blurBFO[2], 0, 0, self.blurTexSizeX, self.blurTexSizeY,
 				self.outFBO, 0, 0, self.texOutSizeX, self.texOutSizeY,
-				GL.COLOR_BUFFER_BIT, GL.LINEAR)
-
---[[
-	gl.ActiveFBO(self.blurBFO[2], function()
-		gl.CopyToTexture(self.texOut, 0, 0, 0, 0, self.texOutSizeX, self.texOutSizeY)
-	end)
-]]--
+				GL.COLOR_BUFFER_BIT, GL.LINEAR )
 end
 
 function GaussBlur:Finalize()
