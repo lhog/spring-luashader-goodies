@@ -46,20 +46,28 @@ local combFragTemplate = [[
 			colorGauss += texture(gaussIn[i], uv);
 		}
 
-		//vec4 color = DoCombine(colorTexIn, colorGauss);
-		vec4 color = colorTexIn + colorGauss;
+		vec4 color = DoCombine(colorTexIn, colorGauss);
 
 		gl_FragColor = DoToneMapping(color);
 	}
 ]]
 
-local doCombineFuncDefault = [[
-vec4 DoCombine(in vec4 colorTexIn, in vec4 colorGauss) {
-	return colorTexIn + colorGauss;
-}
-]]
+local doCombineFuncDefault = {
+[false] =
+[[
+	vec4 DoCombine(in vec4 colorTexIn, in vec4 colorGauss) {
+		return colorTexIn + colorGauss;
+	}
+]],
+[true] =
+[[
+	vec4 DoCombine(in vec4 colorTexIn, in vec4 colorGauss) {
+		return colorGauss;
+	}
+]]}
 
 local function new(class, inputs)
+	local bloomOnly = ((inputs.bloomOnly == nil and true) or inputs.bloomOnly)
 	return setmetatable(
 	{
 		texIn = inputs.texIn,
@@ -77,13 +85,13 @@ local function new(class, inputs)
 		cutOffUniforms = inputs.cutOffUniforms or "",
 
 		-- GLSL definition of DoCombine(in vec4 colorTexIn, in vec4 colorGauss) function
-		doCombineFunc = inputs.doCombineFunc or doCombineFuncDefault,
+		doCombineFunc = inputs.doCombineFunc or doCombineFuncDefault[bloomOnly],
 		-- GLSL definition of DoToneMapping(in vec4 hdrColor) function
 		doToneMappingFunc = inputs.doToneMappingFunc,
 		-- GLSL definition of Combination Shader Uniforms
 		combUniforms = inputs.combUniforms or "",
 
-		bloomOnly = ((inputs.bloomOnly == nil and true) or inputs.bloomOnly),
+		bloomOnly = bloomOnly,
 
 		cutOffTex = nil,
 		cutOffFBO = nil,
