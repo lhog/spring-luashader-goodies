@@ -56,13 +56,13 @@ local doCombineFuncDefault = {
 [false] =
 [[
 	vec4 DoCombine(in vec4 colorTexIn, in vec4 colorGauss) {
-		return colorTexIn + colorGauss;
+		return colorTexIn + colorGauss / gaussIn.length();
 	}
 ]],
 [true] =
 [[
 	vec4 DoCombine(in vec4 colorTexIn, in vec4 colorGauss) {
-		return colorGauss;
+		return colorGauss / gaussIn.length();
 	}
 ]]}
 
