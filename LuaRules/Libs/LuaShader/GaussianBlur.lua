@@ -1,4 +1,4 @@
-local LuaShader = VFS.Include("LuaUI/Widgets/libs/LuaShader.lua")
+local LuaShader = VFS.Include("LuaRules/Libs/LuaShader/LuaShader.lua")
 
 local GL_RGBA = 0x1908
 

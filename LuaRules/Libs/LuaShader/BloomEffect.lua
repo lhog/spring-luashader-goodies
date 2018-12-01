@@ -1,5 +1,5 @@
-local GaussianBlur = VFS.Include("LuaUI/Widgets/libs/GaussianBlur.lua")
-local LuaShader = VFS.Include("LuaUI/Widgets/libs/LuaShader.lua")
+local GaussianBlur = VFS.Include("LuaRules/Libs/LuaShader/GaussianBlur.lua")
+local LuaShader = VFS.Include("LuaRules/Libs/LuaShader/LuaShader.lua")
 
 local GL_RGBA = 0x1908
 
