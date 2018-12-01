@@ -32,11 +32,60 @@ LuaShader.__index = LuaShader
 LuaShader.isGeometryShaderSupported = isGeometryShaderSupported()
 LuaShader.isTesselationShaderSupported = isTesselationShaderSupported()
 
+-----------------============ Handle Ghetto Include<> ==============-----------------
+local includeRegexps = {
+	'.-#include <(.-)>.-',
+	'.-#include \"(.-)\".-',
+	'.-#pragma(%s+)include <(.-)>.-',
+	'.-#pragma(%s+)include \"(.-)\".-',
+}
+
+local function handleIncludes(shaderCode, shaderName)
+	local incFiles = {}
+	repeat
+		local incFile
+		local regEx
+		for _, rx in ipairs(includeRegexps) do
+			_, _, incFile = string.find(shaderCode, rx)
+			if incFile then
+				regEx = rx
+				break
+			end
+		end
+
+		if incFile then
+			shaderCode = string.gsub(shaderCode, regEx,'', 1)
+			table.insert(incFiles, incFile)
+		end
+	until (incFile == nil)
+
+	local includeText = ""
+	for _, incFile in ipairs(incFiles) do
+		if VFS.FileExists(incFile) then
+			includeText = includeText .. VFS.LoadFile(incFile) .. "\n"
+		else
+			Spring.Echo(string.format("LuaShader: [%s] shader errors:\n%s", shaderName, string.format("Attempt to execute %s with file that does not exist in VFS", incFile)))
+			return false
+		end
+	end
+	return includeText .. shaderCode
+end
+-----------------========= End of Handle Ghetto Include<> ==========-----------------
+
 -----------------============ General LuaShader methods ============-----------------
 function LuaShader:Compile()
 	if not gl.CreateShader then
 		Spring.Echo(string.format("LuaShader: [%s] shader errors:\n%s", self.shaderName, "GLSL Shaders are not supported by hardware or drivers"))
 		return false
+	end
+
+	for _, shaderType in ipairs({"vertex", "tcs", "tes", "geometry", "fragment"}) do
+		if self.shaderParams[shaderType] then
+			local newShaderCode = handleIncludes(self.shaderParams[shaderType], self.shaderName)
+			if newShaderCode then
+				self.shaderParams[shaderType] = newShaderCode
+			end
+		end
 	end
 
 	self.shaderObj = gl.CreateShader(self.shaderParams)
