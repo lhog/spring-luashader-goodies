@@ -4,12 +4,20 @@ local UNIFORM_TYPE_FLOAT        = 2 -- includes arrays
 local UNIFORM_TYPE_FLOAT_MATRIX = 3
 
 
-local function new(class, shaderParams, shaderName, showWarn)
+local function new(class, shaderParams, shaderName, showWarnTimes)
+	local showWarnTimesSanitized
+	if type(showWarnTimes) == "number" then
+		showWarnTimesSanitized = showWarnTimes
+	else
+		showWarnTimesSanitized = 5
+	end
+
 	return setmetatable(
 	{
 		shaderName = shaderName or "Unnamed Shader",
 		shaderParams = shaderParams or {},
-		showWarn = showWarn or true,
+		showWarnTimes = showWarnTimesSanitized,
+		warningHash = {},
 		shaderObj = nil,
 		active = false,
 		uniforms = {},
@@ -32,6 +40,29 @@ LuaShader.__index = LuaShader
 LuaShader.isGeometryShaderSupported = isGeometryShaderSupported()
 LuaShader.isTesselationShaderSupported = isTesselationShaderSupported()
 
+-----------------============ Warnings & Error Gandling ============-----------------
+function LuaShader:ShowWarning(text)
+	local message = string.format("LuaShader: [%s] shader warning(s):\n%s", self.shaderName, text)
+
+	if self.warningHash[message] == nil then
+		self.warningHash[message] = 0
+	end
+
+	if self.warningHash[message] <= self.showWarnTimes then
+		local newCnt = self.warningHash[message] + 1
+		self.warningHash[message] = newCnt
+		if (newCnt == self.showWarnTimes) then
+			message = message .. string.format("\n%s", "Supressing further warning of the same kind")
+		end
+		Spring.Echo(message)
+	end
+end
+
+function LuaShader:ShowError(text)
+	local message = string.format("LuaShader: [%s] shader error(s):\n%s", self.shaderName, text)
+	Spring.Echo(message)
+end
+
 -----------------============ Handle Ghetto Include<> ==============-----------------
 local includeRegexps = {
 	'.-#include <(.-)>.-',
@@ -40,7 +71,7 @@ local includeRegexps = {
 	'.-#pragma(%s+)include \"(.-)\".-',
 }
 
-local function handleIncludes(shaderCode, shaderName)
+function LuaShader:HandleIncludes(shaderCode, shaderName)
 	local incFiles = {}
 	repeat
 		local incFile
@@ -64,24 +95,25 @@ local function handleIncludes(shaderCode, shaderName)
 		if VFS.FileExists(incFile) then
 			includeText = includeText .. VFS.LoadFile(incFile) .. "\n"
 		else
-			Spring.Echo(string.format("LuaShader: [%s] shader errors:\n%s", shaderName, string.format("Attempt to execute %s with file that does not exist in VFS", incFile)))
+			self:ShowError(string.format("Attempt to execute %s with file that does not exist in VFS", incFile))
 			return false
 		end
 	end
 	return includeText .. shaderCode
 end
+
 -----------------========= End of Handle Ghetto Include<> ==========-----------------
 
 -----------------============ General LuaShader methods ============-----------------
 function LuaShader:Compile()
 	if not gl.CreateShader then
-		Spring.Echo(string.format("LuaShader: [%s] shader errors:\n%s", self.shaderName, "GLSL Shaders are not supported by hardware or drivers"))
+		self:ShowError("GLSL Shaders are not supported by hardware or drivers")
 		return false
 	end
 
 	for _, shaderType in ipairs({"vertex", "tcs", "tes", "geometry", "fragment"}) do
 		if self.shaderParams[shaderType] then
-			local newShaderCode = handleIncludes(self.shaderParams[shaderType], self.shaderName)
+			local newShaderCode = LuaShader:HandleIncludes(self.shaderParams[shaderType], self.shaderName)
 			if newShaderCode then
 				self.shaderParams[shaderType] = newShaderCode
 			end
@@ -94,10 +126,10 @@ function LuaShader:Compile()
 	local shLog = gl.GetShaderLog() or ""
 
 	if not shaderObj then
-		Spring.Echo(string.format("LuaShader: [%s] shader errors:\n%s", self.shaderName, shLog))
+		self:ShowError(shLog)
 		return false
-	elseif (self.showWarn and shLog ~= "") then
-		Spring.Echo(string.format("LuaShader: [%s] shader warnings:\n%s", self.shaderName, shLog))
+	elseif (shLog ~= "") then
+		self:ShowWarning(shLog)
 	end
 
 	local uniforms = self.uniforms
@@ -121,7 +153,7 @@ function LuaShader:GetHandle()
 		return self.shaderObj
 	else
 		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()?", funcName)))
+		self:ShowError(string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()?", funcName))
 	end
 end
 
@@ -130,7 +162,7 @@ function LuaShader:Delete()
 		gl.DeleteShader(self.shaderObj)
 	else
 		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName)))
+		self:ShowError(string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName))
 	end
 end
 
@@ -142,7 +174,7 @@ function LuaShader:Activate()
 		return gl.UseShader(self.shaderObj)
 	else
 		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName)))
+		self:ShowError(string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName))
 		return false
 	end
 end
@@ -154,7 +186,7 @@ function LuaShader:ActivateWith(func, ...)
 		self.active = false
 	else
 		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName)))
+		self:ShowError(string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName))
 	end
 end
 
@@ -168,14 +200,12 @@ end
 -----------------============ Friend LuaShader functions ============-----------------
 local function getUniform(self, name)
 	if not self.active then
-		Spring.Echo(string.format("LuaShader: [%s] shader error:\n%s", self.shaderName, string.format("Trying to set uniform [%s] on inactive shader object. Did you use :Activate() or :ActivateWith()?", name)))
+		self:ShowError(string.format("Trying to set uniform [%s] on inactive shader object. Did you use :Activate() or :ActivateWith()?", name))
 		return nil
 	end
 	local uniform = self.uniforms[name]
 	if not uniform then
-		if self.showWarn then
-			Spring.Echo(string.format("LuaShader: [%s] shader warning:\n%s", self.shaderName, string.format("Attempt to set uniform [%s], which does not exist in the compiled shader", name)))
-		end
+		self:ShowWarning(string.format("Attempt to set uniform [%s], which does not exist in the compiled shader", name))
 		return nil
 	end
 	return uniform
