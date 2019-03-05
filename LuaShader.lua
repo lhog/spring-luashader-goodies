@@ -4,20 +4,20 @@ local UNIFORM_TYPE_FLOAT        = 2 -- includes arrays
 local UNIFORM_TYPE_FLOAT_MATRIX = 3
 
 
-local function new(class, shaderParams, shaderName, showWarnTimes)
-	local showWarnTimesSanitized
-	if type(showWarnTimes) == "number" then
-		showWarnTimesSanitized = showWarnTimes
+local function new(class, shaderParams, shaderName, logEntries)
+	local logEntriesSanitized
+	if type(logEntries) == "number" then
+		logEntriesSanitized = logEntries
 	else
-		showWarnTimesSanitized = 5
+		logEntriesSanitized = 3
 	end
 
 	return setmetatable(
 	{
 		shaderName = shaderName or "Unnamed Shader",
 		shaderParams = shaderParams or {},
-		showWarnTimes = showWarnTimesSanitized,
-		warningHash = {},
+		logEntries = logEntriesSanitized,
+		logHash = {},
 		shaderObj = nil,
 		active = false,
 		uniforms = {},
@@ -32,6 +32,10 @@ local function isTesselationShaderSupported()
 	return gl.HasExtension("GL_ARB_tessellation_shader") and (gl.SetTesselationShaderParameter ~= nil)
 end
 
+local function isDeferredShadingEnabled()
+	return (Spring.GetConfigInt("AllowDeferredMapRendering") == 1) and (Spring.GetConfigInt("AllowDeferredModelRendering") == 1)
+end
+
 
 local LuaShader = setmetatable({}, {
 	__call = function(self, ...) return new(self, ...) end,
@@ -39,28 +43,36 @@ local LuaShader = setmetatable({}, {
 LuaShader.__index = LuaShader
 LuaShader.isGeometryShaderSupported = isGeometryShaderSupported()
 LuaShader.isTesselationShaderSupported = isTesselationShaderSupported()
+LuaShader.isDeferredShadingEnabled = isDeferredShadingEnabled()
 
 -----------------============ Warnings & Error Gandling ============-----------------
-function LuaShader:ShowWarning(text)
-	local message = string.format("LuaShader: [%s] shader warning(s):\n%s", self.shaderName, text)
+function LuaShader:OutputLogEntry(text, isError)
+	local message
 
-	if self.warningHash[message] == nil then
-		self.warningHash[message] = 0
+	local warnErr = (isError and "error") or "warning"
+
+	message = string.format("LuaShader: [%s] shader %s(s):\n%s", self.shaderName, warnErr, text)
+
+	if self.logHash[message] == nil then
+		self.logHash[message] = 0
 	end
 
-	if self.warningHash[message] <= self.showWarnTimes then
-		local newCnt = self.warningHash[message] + 1
-		self.warningHash[message] = newCnt
-		if (newCnt == self.showWarnTimes) then
-			message = message .. string.format("\n%s", "Supressing further warning of the same kind")
+	if self.logHash[message] <= self.logEntries then
+		local newCnt = self.logHash[message] + 1
+		self.logHash[message] = newCnt
+		if (newCnt == self.logEntries) then
+			message = message .. string.format("\nSupressing further %s of the same kind", warnErr)
 		end
 		Spring.Echo(message)
 	end
 end
 
+function LuaShader:ShowWarning(text)
+	self:OutputLogEntry(text, false)
+end
+
 function LuaShader:ShowError(text)
-	local message = string.format("LuaShader: [%s] shader error(s):\n%s", self.shaderName, text)
-	Spring.Echo(message)
+	self:OutputLogEntry(text, true)
 end
 
 -----------------============ Handle Ghetto Include<> ==============-----------------
@@ -137,11 +149,12 @@ function LuaShader:Compile()
 		local uniName = string.gsub(info.name, "%[0%]", "") -- change array[0] to array
 		uniforms[uniName] = {
 			location = gl.GetUniformLocation(shaderObj, uniName),
-			type = info.type,
-			size = info.size,
+			--type = info.type,
+			--size = info.size,
 			values = {},
 		}
 		--Spring.Echo(uniName, uniforms[uniName].location, uniforms[uniName].type, uniforms[uniName].size)
+		--Spring.Echo(uniName, uniforms[uniName].location)
 	end
 	return true
 end
@@ -198,12 +211,35 @@ end
 
 
 -----------------============ Friend LuaShader functions ============-----------------
+local function getUniformLocation(self, name)
+	local uniform = self.uniforms[name]
+
+	if uniform and type(uniform) == "table" then
+		return uniform
+	elseif uniform == nil then --used for indexed elements. nil means not queried for location yet
+		local location = gl.GetUniformLocation(self.shaderObj, name)
+		Spring.Echo("Info: [New functionallity] getUniformLocation", name, location)
+		if location and location > -1 then
+			self.uniforms[name] = {
+				location = location,
+				values = {},
+			}
+			return self.uniforms[name]
+		else
+			self.uniforms[name] = false --checked dynamic uniform name and didn't find it
+		end
+	end
+
+	-- (uniform == false)
+	return nil
+end
+
 local function getUniform(self, name)
 	if not self.active then
 		self:ShowError(string.format("Trying to set uniform [%s] on inactive shader object. Did you use :Activate() or :ActivateWith()?", name))
 		return nil
 	end
-	local uniform = self.uniforms[name]
+	local uniform = getUniformLocation(self, name)
 	if not uniform then
 		self:ShowWarning(string.format("Attempt to set uniform [%s], which does not exist in the compiled shader", name))
 		return nil
