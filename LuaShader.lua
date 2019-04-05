@@ -3,13 +3,20 @@ local UNIFORM_TYPE_INT          = 1 -- includes arrays
 local UNIFORM_TYPE_FLOAT        = 2 -- includes arrays
 local UNIFORM_TYPE_FLOAT_MATRIX = 3
 
+local glGetUniformLocation = gl.GetUniformLocation
+local glUseShader = gl.UseShader
+local glActiveShader = gl.ActiveShader
+local glUniform = gl.Uniform
+local glUniformInt = gl.UniformInt
+local glUniformMatrix = gl.UniformMatrix
+local glUniformArray = gl.UniformArray
 
 local function new(class, shaderParams, shaderName, logEntries)
 	local logEntriesSanitized
 	if type(logEntries) == "number" then
 		logEntriesSanitized = logEntries
 	else
-		logEntriesSanitized = 3
+		logEntriesSanitized = 1
 	end
 
 	return setmetatable(
@@ -20,6 +27,8 @@ local function new(class, shaderParams, shaderName, logEntries)
 		logHash = {},
 		shaderObj = nil,
 		active = false,
+		ignoreActive = false,
+		ignoreUnkUniform = false,
 		uniforms = {},
 	}, class)
 end
@@ -85,6 +94,7 @@ local includeRegexps = {
 
 function LuaShader:HandleIncludes(shaderCode, shaderName)
 	local incFiles = {}
+	local t1 = Spring.GetTimer()
 	repeat
 		local incFile
 		local regEx
@@ -96,11 +106,15 @@ function LuaShader:HandleIncludes(shaderCode, shaderName)
 			end
 		end
 
+		Spring.Echo(shaderName, incFile)
+
 		if incFile then
-			shaderCode = string.gsub(shaderCode, regEx,'', 1)
+			shaderCode = string.gsub(shaderCode, regEx, '', 1)
 			table.insert(incFiles, incFile)
 		end
 	until (incFile == nil)
+	local t2 = Spring.GetTimer()
+	Spring.Echo(Spring.DiffTimers(t2, t1, true))
 
 	local includeText = ""
 	for _, incFile in ipairs(incFiles) do
@@ -111,7 +125,12 @@ function LuaShader:HandleIncludes(shaderCode, shaderName)
 			return false
 		end
 	end
-	return includeText .. shaderCode
+
+	if includeText ~= "" then
+		return includeText .. shaderCode
+	else
+		return shaderCode
+	end
 end
 
 -----------------========= End of Handle Ghetto Include<> ==========-----------------
@@ -123,6 +142,8 @@ function LuaShader:Compile()
 		return false
 	end
 
+-- LuaShader:HandleIncludes is too slow. Figure out faster way.
+--[[
 	for _, shaderType in ipairs({"vertex", "tcs", "tes", "geometry", "fragment"}) do
 		if self.shaderParams[shaderType] then
 			local newShaderCode = LuaShader:HandleIncludes(self.shaderParams[shaderType], self.shaderName)
@@ -131,6 +152,7 @@ function LuaShader:Compile()
 			end
 		end
 	end
+]]--
 
 	self.shaderObj = gl.CreateShader(self.shaderParams)
 	local shaderObj = self.shaderObj
@@ -148,7 +170,7 @@ function LuaShader:Compile()
 	for idx, info in ipairs(gl.GetActiveUniforms(shaderObj)) do
 		local uniName = string.gsub(info.name, "%[0%]", "") -- change array[0] to array
 		uniforms[uniName] = {
-			location = gl.GetUniformLocation(shaderObj, uniName),
+			location = glGetUniformLocation(shaderObj, uniName),
 			--type = info.type,
 			--size = info.size,
 			values = {},
@@ -184,7 +206,7 @@ LuaShader.Finalize = LuaShader.Delete
 function LuaShader:Activate()
 	if self.shaderObj ~= nil then
 		self.active = true
-		return gl.UseShader(self.shaderObj)
+		return glUseShader(self.shaderObj)
 	else
 		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
 		self:ShowError(string.format("Attempt to use invalid shader object in [%s](). Did you call :Compile() or :Initialize()", funcName))
@@ -192,10 +214,19 @@ function LuaShader:Activate()
 	end
 end
 
+function LuaShader:SetActiveStateIgnore(flag)
+	self.ignoreActive = flag
+end
+
+function LuaShader:SetUnknownUniformIgnore(flag)
+	self.ignoreUnkUniform = flag
+end
+
+
 function LuaShader:ActivateWith(func, ...)
 	if self.shaderObj ~= nil then
 		self.active = true
-		gl.ActiveShader(self.shaderObj, func, ...)
+		glActiveShader(self.shaderObj, func, ...)
 		self.active = false
 	else
 		local funcName = (debug and debug.getinfo(1).name) or "UnknownFunction"
@@ -205,20 +236,19 @@ end
 
 function LuaShader:Deactivate()
 	self.active = false
-	gl.UseShader(0)
+	glUseShader(0)
 end
 -----------------============ End of general LuaShader methods ============-----------------
 
 
 -----------------============ Friend LuaShader functions ============-----------------
-local function getUniformLocation(self, name)
+local function getUniformImpl(self, name)
 	local uniform = self.uniforms[name]
 
 	if uniform and type(uniform) == "table" then
 		return uniform
 	elseif uniform == nil then --used for indexed elements. nil means not queried for location yet
-		local location = gl.GetUniformLocation(self.shaderObj, name)
-		Spring.Echo("Info: [New functionallity] getUniformLocation", name, location)
+		local location = glGetUniformLocation(self.shaderObj, name)
 		if location and location > -1 then
 			self.uniforms[name] = {
 				location = location,
@@ -235,12 +265,12 @@ local function getUniformLocation(self, name)
 end
 
 local function getUniform(self, name)
-	if not self.active then
+	if not (self.active or self.ignoreActive) then
 		self:ShowError(string.format("Trying to set uniform [%s] on inactive shader object. Did you use :Activate() or :ActivateWith()?", name))
 		return nil
 	end
-	local uniform = getUniformLocation(self, name)
-	if not uniform then
+	local uniform = getUniformImpl(self, name)
+	if not (uniform ~= nil or self.ignoreUnkUniform) then
 		self:ShowWarning(string.format("Attempt to set uniform [%s], which does not exist in the compiled shader", name))
 		return nil
 	end
@@ -269,9 +299,13 @@ end
 -----------------============ LuaShader uniform manipulation functions ============-----------------
 -- TODO: do it safely with types, len, size check
 
+function LuaShader:GetUniformLocation(name)
+	return (getUniform(self, name) or {}).location or -1
+end
+
 --FLOAT UNIFORMS
 local function setUniformAlwaysImpl(uniform, ...)
-	gl.Uniform(uniform.location, ...)
+	glUniform(uniform.location, ...)
 	return true --currently there is no way to check if uniform is set or not :(
 end
 
@@ -304,7 +338,7 @@ LuaShader.SetUniformFloatAlways = LuaShader.SetUniformAlways
 
 --INTEGER UNIFORMS
 local function setUniformIntAlwaysImpl(uniform, ...)
-	gl.UniformInt(uniform.location, ...)
+	glUniformInt(uniform.location, ...)
 	return true --currently there is no way to check if uniform is set or not :(
 end
 
@@ -334,7 +368,7 @@ end
 
 --FLOAT ARRAY UNIFORMS
 local function setUniformFloatArrayAlwaysImpl(uniform, tbl)
-	gl.UniformArray(uniform.location, UNIFORM_TYPE_FLOAT, tbl)
+	glUniformArray(uniform.location, UNIFORM_TYPE_FLOAT, tbl)
 	return true --currently there is no way to check if uniform is set or not :(
 end
 
@@ -364,7 +398,7 @@ end
 
 --INT ARRAY UNIFORMS
 local function setUniformIntArrayAlwaysImpl(uniform, tbl)
-	gl.UniformArray(uniform.location, UNIFORM_TYPE_INT, tbl)
+	glUniformArray(uniform.location, UNIFORM_TYPE_INT, tbl)
 	return true --currently there is no way to check if uniform is set or not :(
 end
 
@@ -394,7 +428,7 @@ end
 
 --MATRIX UNIFORMS
 local function setUniformMatrixAlwaysImpl(uniform, tbl)
-	gl.UniformMatrix(uniform.location, unpack(tbl))
+	glUniformMatrix(uniform.location, unpack(tbl))
 	return true --currently there is no way to check if uniform is set or not :(
 end
 
